@@ -1,0 +1,45 @@
+/* css/style.css */
+
+/* Asegúrate de que no haya un padding en el body que pueda interferir con el sticky footer */
+body {
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+}
+
+/* Puedes añadir estilos personalizados aquí si lo necesitas */
+
+/* Estilos para las tablas para asegurar un buen scroll en pantallas pequeñas */
+.table-responsive {
+    overflow-x: auto; /* Permite scroll horizontal en tablas en pantallas pequeñas */
+}
+
+/* Estilos para formularios y tarjetas en pantallas pequeñas */
+@media (max-width: 767.98px) {
+    .card-body {
+        padding: 1rem; /* Reduce el padding de las tarjetas en móviles */
+    }
+    .form-label {
+        margin-bottom: .25rem; /* Reduce el margen inferior de las etiquetas de formulario */
+    }
+    .btn {
+        margin-bottom: .5rem; /* Añade un pequeño margen entre botones apilados */
+        width: 100%; /* Haz que los botones ocupen todo el ancho en móviles */
+    }
+    /* Para los botones de acción en tablas, hacer que se apilen si es necesario */
+    .table td:last-child .btn {
+        width: auto; /* Ajusta el ancho de los botones dentro de la tabla */
+        display: inline-block; /* Manténlos en línea si hay espacio */
+    }
+    /* Si los botones de acción en tablas se amontonan, considera usar dropdowns o flex-wrap */
+    .table td:last-child {
+        white-space: nowrap; /* Evita que el texto de las celdas se rompa excesivamente */
+    }
+}
+
+/* Opcional: Centrar y dar un ancho máximo al contenido si no usas container en todas las páginas */
+/* .content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 15px;
+} */
