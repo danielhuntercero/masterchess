@@ -7,7 +7,6 @@ body {
     margin: 0;
 }
 
-/* Puedes añadir estilos personalizados aquí si lo necesitas */
 
 /* Estilos para las tablas para asegurar un buen scroll en pantallas pequeñas */
 .table-responsive {
@@ -24,12 +23,12 @@ body {
     }
     .btn {
         margin-bottom: .5rem; /* Añade un pequeño margen entre botones apilados */
-        width: 100%; /* Haz que los botones ocupen todo el ancho en móviles */
+        width: 100%; 
     }
     /* Para los botones de acción en tablas, hacer que se apilen si es necesario */
     .table td:last-child .btn {
         width: auto; /* Ajusta el ancho de los botones dentro de la tabla */
-        display: inline-block; /* Manténlos en línea si hay espacio */
+        display: inline-block; 
     }
     /* Si los botones de acción en tablas se amontonan, considera usar dropdowns o flex-wrap */
     .table td:last-child {
@@ -37,9 +36,3 @@ body {
     }
 }
 
-/* Opcional: Centrar y dar un ancho máximo al contenido si no usas container en todas las páginas */
-/* .content-wrapper {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 15px;
-} */

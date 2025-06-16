@@ -34,7 +34,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
     exit();
 }
 
-// Lógica para marcar un mensaje como leído/no leído (opcional)
+// Lógica para marcar un mensaje como leído/no leído
 if (isset($_GET['action']) && $_GET['action'] === 'toggle_read' && isset($_GET['id'])) {
     $mensaje_id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
     if ($mensaje_id === false) {
@@ -68,11 +68,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'toggle_read' && isset($_GET['
     exit();
 }
 
-
 // Lógica para obtener todos los mensajes
 $mensajes = [];
 try {
-    $stmt = $pdo->query("SELECT id, nombre, email, asunto, mensaje, fecha_envio, leido FROM mensajes_contacto ORDER BY fecha_envio DESC");
+    $stmt = $pdo->query("SELECT id, nombre, email, asunto, mensaje, fecha, leido FROM mensajes_contacto ORDER BY fecha DESC");
     $mensajes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $mensaje = "Error al cargar los mensajes: " . $e->getMessage();
@@ -87,6 +86,13 @@ if (isset($_GET['mensaje']) && isset($_GET['tipo'])) {
 ?>
 
 <h1 class="mb-4"><i class="bi bi-chat-dots-fill me-3"></i>Gestión de Mensajes de Contacto</h1>
+
+<?php if ($mensaje): ?>
+    <div class="alert alert-<?= $tipo_mensaje ?> alert-dismissible fade show" role="alert">
+        <?= $mensaje ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
 
 <div class="table-responsive">
     <table class="table table-striped table-hover align-middle">
@@ -105,11 +111,13 @@ if (isset($_GET['mensaje']) && isset($_GET['tipo'])) {
         <tbody>
             <?php if (count($mensajes) > 0): ?>
                 <?php foreach ($mensajes as $msg): ?>
-                    <tr class="<?php echo ($msg['leido'] == 0) ? 'fw-bold table-primary' : ''; ?>"> <td><?php echo htmlspecialchars($msg['id']); ?></td>
-                        <td><?php echo htmlspecialchars($msg['nombre']); ?></td>
-                        <td><?php echo htmlspecialchars($msg['email']); ?></td>
-                        <td><?php echo htmlspecialchars($msg['asunto']); ?></td>
-                        <td><?php echo htmlspecialchars(mb_strimwidth($msg['mensaje'], 0, 50, "...")); ?></td> <td><?php echo htmlspecialchars(date('d/m/Y H:i', strtotime($msg['fecha_envio']))); ?></td>
+                    <tr class="<?= ($msg['leido'] == 0) ? 'fw-bold table-primary' : '' ?>">
+                        <td><?= htmlspecialchars($msg['id']) ?></td>
+                        <td><?= htmlspecialchars($msg['nombre']) ?></td>
+                        <td><?= htmlspecialchars($msg['email']) ?></td>
+                        <td><?= htmlspecialchars($msg['asunto']) ?></td>
+                        <td><?= htmlspecialchars(mb_strimwidth($msg['mensaje'], 0, 50, "...")) ?></td>
+                        <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($msg['fecha']))) ?></td>
                         <td>
                             <?php if ($msg['leido']): ?>
                                 <span class="badge bg-success">Leído</span>
@@ -118,9 +126,20 @@ if (isset($_GET['mensaje']) && isset($_GET['tipo'])) {
                             <?php endif; ?>
                         </td>
                         <td>
-                            <a href="mensajes_ver.php?id=<?php echo $msg['id']; ?>" class="btn btn-sm btn-info me-2" title="Ver Detalle"><i class="bi bi-eye"></i></a>
-                            <a href="mensajes_contacto.php?action=toggle_read&id=<?php echo $msg['id']; ?>" class="btn btn-sm <?php echo ($msg['leido'] == 0) ? 'btn-secondary' : 'btn-light text-dark border'; ?>" title="<?php echo ($msg['leido'] == 0) ? 'Marcar como Leído' : 'Marcar como No Leído'; ?>"><i class="bi bi-check-circle<?php echo ($msg['leido'] == 0) ? '' : '-fill'; ?>"></i></a>
-                            <a href="mensajes_contacto.php?action=delete&id=<?php echo $msg['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar este mensaje?');" title="Eliminar"><i class="bi bi-trash"></i></a>
+                            <a href="mensajes_contacto_ver.php?id=<?= $msg['id'] ?>" class="btn btn-sm btn-info me-2" title="Ver Detalle">
+    <i class="bi bi-eye"></i>
+</a>
+                            <a href="mensajes_contacto.php?action=toggle_read&id=<?= $msg['id'] ?>" 
+                               class="btn btn-sm <?= ($msg['leido'] == 0) ? 'btn-secondary' : 'btn-light text-dark border' ?>" 
+                               title="<?= ($msg['leido'] == 0) ? 'Marcar como Leído' : 'Marcar como No Leído' ?>">
+                                <i class="bi bi-check-circle<?= ($msg['leido'] == 0) ? '' : '-fill' ?>"></i>
+                            </a>
+                            <a href="mensajes_contacto.php?action=delete&id=<?= $msg['id'] ?>" 
+                               class="btn btn-sm btn-danger" 
+                               onclick="return confirm('¿Estás seguro de que quieres eliminar este mensaje?');" 
+                               title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

@@ -1,5 +1,12 @@
 <?php
 // admin/servicios_editar.php
+// Agrega esto al inicio de servicios_crear.php, justo después de los requires
+$upload_dir = '../uploads/servicios/';
+
+// Crear el directorio si no existe
+if (!file_exists($upload_dir)) {
+    mkdir($upload_dir, 0777, true); // Crea directorios recursivamente
+}
 require_once '../includes/header.php';
 require_once '../config/db.php';
 
@@ -46,6 +53,32 @@ if ($servicio_id === false) {
         $descripcion_recibida = trim($_POST['descripcion'] ?? '');
         $precio_hora_recibido = filter_var($_POST['precio_hora'] ?? null, FILTER_VALIDATE_FLOAT);
         $profesor_id_recibido = filter_var($_POST['profesor_id'] ?? null, FILTER_VALIDATE_INT);
+        
+        // Procesar la imagen subida
+        $imagen_nombre = $servicio_a_editar['imagen']; // Mantener la imagen actual por defecto
+        
+        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+            $extension = pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION);
+            $extensiones_permitidas = ['jpg', 'jpeg', 'png', 'gif'];
+            
+            if (in_array(strtolower($extension), $extensiones_permitidas)) {
+                // Eliminar la imagen anterior si existe
+                if ($imagen_nombre && file_exists("../uploads/servicios/" . $imagen_nombre)) {
+                    unlink("../uploads/servicios/" . $imagen_nombre);
+                }
+                
+                $imagen_nombre = uniqid() . '.' . $extension;
+                $ruta_destino = "../uploads/servicios/" . $imagen_nombre;
+                
+                if (!move_uploaded_file($_FILES['imagen']['tmp_name'], $ruta_destino)) {
+                    $mensaje = "Error al subir la nueva imagen.";
+                    $tipo_mensaje = "danger";
+                }
+            } else {
+                $mensaje = "Formato de imagen no permitido. Use JPG, JPEG, PNG o GIF.";
+                $tipo_mensaje = "danger";
+            }
+        }
 
         // Validaciones
         if (empty($nombre_recibido)) {
@@ -57,16 +90,16 @@ if ($servicio_id === false) {
         } elseif ($profesor_id_recibido === false && !is_null($_POST['profesor_id']) && $_POST['profesor_id'] !== '') {
             $mensaje = "El profesor seleccionado no es válido.";
             $tipo_mensaje = "danger";
-        }
-        else {
+        } else {
             try {
-                $stmt = $pdo->prepare("UPDATE servicios SET nombre = ?, descripcion = ?, precio_hora = ?, profesor_id = ? WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE servicios SET nombre = ?, descripcion = ?, precio_hora = ?, profesor_id = ?, imagen = ? WHERE id = ?");
                 $profesor_final = ($profesor_id_recibido === 0 || $profesor_id_recibido === null) ? null : $profesor_id_recibido;
-
-                $stmt->execute([$nombre_recibido, $descripcion_recibida, $precio_hora_recibido, $profesor_final, $servicio_id]);
+                
+                $stmt->execute([$nombre_recibido, $descripcion_recibida, $precio_hora_recibido, $profesor_final, $imagen_nombre, $servicio_id]);
 
                 $mensaje = "Servicio actualizado correctamente.";
                 $tipo_mensaje = "success";
+                
                 // Recargar los datos del servicio para mostrar la actualización
                 $stmt = $pdo->prepare("SELECT * FROM servicios WHERE id = ?");
                 $stmt->execute([$servicio_id]);
@@ -75,7 +108,6 @@ if ($servicio_id === false) {
                 // Redirigir con mensaje para que se vea la actualización y evitar reenvío de formulario
                 header("Location: servicios.php?mensaje=" . urlencode($mensaje) . "&tipo=" . urlencode($tipo_mensaje));
                 exit();
-
             } catch (PDOException $e) {
                 $mensaje = "Error al actualizar el servicio: " . $e->getMessage();
                 $tipo_mensaje = "danger";
@@ -95,29 +127,40 @@ if (!empty($mensaje) && !isset($_GET['mensaje'])) {
 ?>
 
 <?php if ($servicio_a_editar): ?>
-    <form action="servicios_editar.php?id=<?php echo htmlspecialchars($servicio_a_editar['id']); ?>" method="POST">
+    <form action="servicios_editar.php?id=<?= htmlspecialchars($servicio_a_editar['id']) ?>" method="POST" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="nombre" class="form-label">Nombre del Servicio:</label>
-            <input type="text" class="form-control" id="nombre" name="nombre" value="<?php echo htmlspecialchars($servicio_a_editar['nombre']); ?>" required>
+            <input type="text" class="form-control" id="nombre" name="nombre" value="<?= htmlspecialchars($servicio_a_editar['nombre']) ?>" required>
         </div>
         <div class="mb-3">
             <label for="descripcion" class="form-label">Descripción (opcional):</label>
-            <textarea class="form-control" id="descripcion" name="descripcion" rows="3"><?php echo htmlspecialchars($servicio_a_editar['descripcion'] ?? ''); ?></textarea>
+            <textarea class="form-control" id="descripcion" name="descripcion" rows="3"><?= htmlspecialchars($servicio_a_editar['descripcion'] ?? '') ?></textarea>
         </div>
         <div class="mb-3">
             <label for="precio_hora" class="form-label">Precio por Hora (€) (opcional):</label>
-            <input type="number" step="0.01" class="form-control" id="precio_hora" name="precio_hora" value="<?php echo htmlspecialchars($servicio_a_editar['precio_hora'] ?? ''); ?>" min="0">
+            <input type="number" step="0.01" class="form-control" id="precio_hora" name="precio_hora" value="<?= htmlspecialchars($servicio_a_editar['precio_hora'] ?? '') ?>" min="0">
         </div>
         <div class="mb-3">
             <label for="profesor_id" class="form-label">Profesor Asignado (opcional):</label>
             <select class="form-select" id="profesor_id" name="profesor_id">
                 <option value="">Selecciona un profesor</option>
                 <?php foreach ($profesores as $prof): ?>
-                    <option value="<?php echo htmlspecialchars($prof['id']); ?>" <?php echo ($prof['id'] == $servicio_a_editar['profesor_id']) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($prof['nombre']); ?>
+                    <option value="<?= htmlspecialchars($prof['id']) ?>" <?= ($prof['id'] == $servicio_a_editar['profesor_id']) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($prof['nombre']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
+        </div>
+        <div class="mb-3">
+            <label for="imagen" class="form-label">Imagen del Servicio:</label>
+            <?php if (!empty($servicio_a_editar['imagen'])): ?>
+                <div class="mb-2">
+                    <img src="../uploads/servicios/<?= htmlspecialchars($servicio_a_editar['imagen']) ?>" alt="Imagen actual" style="max-width: 200px;" class="img-thumbnail">
+                    <div class="form-text">Imagen actual. Subir nueva imagen para reemplazar.</div>
+                </div>
+            <?php endif; ?>
+            <input type="file" class="form-control" id="imagen" name="imagen" accept="image/*">
+            <div class="form-text">Dejar en blanco para mantener la imagen actual. Formatos permitidos: JPG, JPEG, PNG, GIF.</div>
         </div>
         <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Actualizar Servicio</button>
         <a href="servicios.php" class="btn btn-secondary"><i class="bi bi-x-circle me-2"></i>Cancelar</a>

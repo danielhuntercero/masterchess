@@ -8,7 +8,7 @@ if (!isset($_SESSION['usuario_id']) || ($_SESSION['usuario_rol'] !== 'admin' && 
     exit();
 }
 
-// Puedes añadir lógica para permisos más granulares si tuvieras diferentes tipos de administradores
+
 ?>
 <!DOCTYPE html>
 <html lang="es">

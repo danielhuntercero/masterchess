@@ -1,75 +1,116 @@
 <?php
-// admin/mensajes_ver.php
-require_once '../includes/header.php';
+// admin/mensajes_contacto_ver.php
 require_once '../config/db.php';
 
 $mensaje_contacto = null;
 $mensaje = "";
 $tipo_mensaje = "";
 
+// Obtener ID del mensaje
 $mensaje_id = filter_var($_GET['id'] ?? '', FILTER_VALIDATE_INT);
 
-if ($mensaje_id === false) {
-    $mensaje = "ID de mensaje no válido.";
-    $tipo_mensaje = "danger";
-} else {
-    try {
-        $stmt = $pdo->prepare("SELECT id, nombre, email, asunto, mensaje, fecha_envio, leido FROM mensajes_contacto WHERE id = ?");
-        $stmt->execute([$mensaje_id]);
-        $mensaje_contacto = $stmt->fetch(PDO::FETCH_ASSOC);
+if ($mensaje_id === false || $mensaje_id <= 0) {
+    header('Location: mensajes_contacto.php');
+    exit();
+}
 
-        if (!$mensaje_contacto) {
-            $mensaje = "Mensaje no encontrado.";
-            $tipo_mensaje = "danger";
-        } else {
-            // Marcar como leído si aún no lo está
-            if ($mensaje_contacto['leido'] == 0) {
-                $stmt_update = $pdo->prepare("UPDATE mensajes_contacto SET leido = 1 WHERE id = ?");
-                $stmt_update->execute([$mensaje_id]);
-                // No mostrar un mensaje de éxito aquí, ya que el usuario vino a ver el mensaje
-                $mensaje_contacto['leido'] = 1; // Actualizar el estado en la variable para mostrarlo correctamente
-            }
-        }
-    } catch (PDOException $e) {
-        $mensaje = "Error al cargar el mensaje: " . $e->getMessage();
-        $tipo_mensaje = "danger";
+try {
+    // Obtener el mensaje
+    $stmt = $pdo->prepare("SELECT * FROM mensajes_contacto WHERE id = ?");
+    $stmt->execute([$mensaje_id]);
+    $mensaje_contacto = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$mensaje_contacto) {
+        header('Location: mensajes_contacto.php');
+        exit();
     }
+
+    // Marcar como leído si no lo está
+    if (!$mensaje_contacto['leido']) {
+        $update_stmt = $pdo->prepare("UPDATE mensajes_contacto SET leido = 1 WHERE id = ?");
+        $update_stmt->execute([$mensaje_id]);
+    }
+} catch (PDOException $e) {
+    header('Location: mensajes_contacto.php');
+    exit();
+}
+
+// Mostrar mensajes de éxito/error
+if (isset($_GET['mensaje'])) {
+    $mensaje = htmlspecialchars($_GET['mensaje']);
+    $tipo_mensaje = htmlspecialchars($_GET['tipo'] ?? 'info');
 }
 ?>
 
-<h1 class="mb-4"><i class="bi bi-chat-text-fill me-3"></i>Ver Mensaje</h1>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Mensaje - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="../assets/css/admin.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4"><i class="bi bi-envelope-open me-2"></i> Detalle del Mensaje</h1>
 
-<?php if ($mensaje_contacto): ?>
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title mb-0"><i class="bi bi-envelope-fill me-2"></i>Asunto: <?php echo htmlspecialchars($mensaje_contacto['asunto']); ?></h5>
-        </div>
-        <div class="card-body">
-            <p><strong>De:</strong> <?php echo htmlspecialchars($mensaje_contacto['nombre']); ?> &lt;<?php echo htmlspecialchars($mensaje_contacto['email']); ?>&gt;</p>
-            <p><strong>Fecha:</strong> <?php echo htmlspecialchars(date('d/m/Y H:i', strtotime($mensaje_contacto['fecha_envio']))); ?></p>
-            <hr>
-            <p class="card-text"><?php echo nl2br(htmlspecialchars($mensaje_contacto['mensaje'])); ?></p>
-            <hr>
-            <p><strong>Estado:</strong>
-                <?php if ($mensaje_contacto['leido']): ?>
-                    <span class="badge bg-success">Leído</span>
-                <?php else: ?>
-                    <span class="badge bg-warning text-dark">No Leído</span>
-                <?php endif; ?>
-            </p>
-        </div>
-        <div class="card-footer text-end">
-            <a href="mensajes_contacto.php?action=toggle_read&id=<?php echo $mensaje_contacto['id']; ?>" class="btn btn-outline-secondary me-2">
-                <i class="bi bi-check-circle<?php echo ($mensaje_contacto['leido'] == 0) ? '' : '-fill'; ?>"></i> <?php echo ($mensaje_contacto['leido'] == 0) ? 'Marcar como Leído' : 'Marcar como No Leído'; ?>
-            </a>
-            <a href="mensajes_contacto.php?action=delete&id=<?php echo $mensaje_contacto['id']; ?>" class="btn btn-danger me-2" onclick="return confirm('¿Estás seguro de que quieres eliminar este mensaje?');"><i class="bi bi-trash me-2"></i>Eliminar Mensaje</a>
-            <a href="mensajes_contacto.php" class="btn btn-secondary"><i class="bi bi-arrow-left me-2"></i>Volver a Mensajes</a>
+        <?php if ($mensaje): ?>
+            <div class="alert alert-<?= $tipo_mensaje ?> alert-dismissible fade show" role="alert">
+                <?= $mensaje ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
+        <div class="card shadow-lg">
+            <div class="card-header bg-primary text-white">
+                <h2><?= htmlspecialchars($mensaje_contacto['asunto']) ?></h2>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>De:</strong> <?= htmlspecialchars($mensaje_contacto['nombre']) ?></p>
+                        <p><strong>Email:</strong> <?= htmlspecialchars($mensaje_contacto['email']) ?></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Fecha:</strong> <?= date('d/m/Y H:i', strtotime($mensaje_contacto['fecha'])) ?></p>
+                        <p><strong>Estado:</strong> 
+                            <span class="badge <?= $mensaje_contacto['leido'] ? 'bg-success' : 'bg-warning' ?>">
+                                <?= $mensaje_contacto['leido'] ? 'Leído' : 'No leído' ?>
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="message-content p-3 bg-light rounded">
+                    <?= nl2br(htmlspecialchars($mensaje_contacto['mensaje'])) ?>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                    <a href="mensajes_contacto.php" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
+                    <div>
+                        <a href="mensajes_contacto.php?action=toggle_read&id=<?= $mensaje_contacto['id'] ?>" 
+                           class="btn <?= $mensaje_contacto['leido'] ? 'btn-outline-warning' : 'btn-outline-success' ?> me-2">
+                            <i class="bi bi-check-circle"></i> 
+                            <?= $mensaje_contacto['leido'] ? 'Marcar como no leído' : 'Marcar como leído' ?>
+                        </a>
+                        <a href="mensajes_contacto.php?action=delete&id=<?= $mensaje_contacto['id'] ?>" 
+                           class="btn btn-danger"
+                           onclick="return confirm('¿Estás seguro de eliminar este mensaje?')">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-<?php else: ?>
-    <p class="alert alert-warning">No se pudo cargar el mensaje o el ID no es válido.</p>
-<?php endif; ?>
-
-<?php
-require_once '../includes/footer.php';
-?>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
